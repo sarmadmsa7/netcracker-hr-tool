@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Netcracker · HR Document Verification</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --red:#E8002D; --red-dk:#C0001F; --red-bg:rgba(232,0,45,.07); --red-bd:rgba(232,0,45,.18);
+  --bg:#EFF1F5; --surface:#FFFFFF; --s2:#F6F7F9; --s3:#EDEEF1;
+  --bd:#E0E3E8; --bd2:#C8CDD6;
+  --ink:#0D1117; --ink2:#24292F; --ink3:#57606A; --ink4:#8C95A0;
+  --green:#1A7F5A; --g-bg:rgba(26,127,90,.07); --g-bd:rgba(26,127,90,.18);
+  --amber:#A8510A; --a-bg:rgba(168,81,10,.07); --a-bd:rgba(168,81,10,.18);
+  --rose:#CF222E; --r-bg:rgba(207,34,46,.07); --r-bd:rgba(207,34,46,.18);
+  --blue:#0969DA; --b-bg:rgba(9,105,218,.07); --b-bd:rgba(9,105,218,.18);
+  --sh0:0 0 0 1px rgba(0,0,0,.06);
+  --sh1:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --sh2:0 3px 12px rgba(0,0,0,.09),0 1px 3px rgba(0,0,0,.05);
+  --r4:4px;--r8:8px;--r12:12px;--r16:16px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.6;min-height:100vh;}
+
+/* ── TOPBAR ── */
+.topbar{position:sticky;top:0;z-index:300;height:54px;background:var(--surface);border-bottom:1px solid var(--bd);box-shadow:var(--sh1);display:flex;align-items:center;padding:0 24px;gap:0;}
+.t-logo{background:var(--red);color:#fff;font-weight:700;font-size:12px;letter-spacing:.8px;padding:5px 11px;border-radius:var(--r4);flex-shrink:0;}
+.t-sep{width:1px;height:28px;background:var(--bd);margin:0 18px;flex-shrink:0;}
+.t-title{font-size:13.5px;font-weight:500;color:var(--ink3);}
+.t-space{flex:1;}
+.t-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.5px;background:var(--red-bg);color:var(--red);border:1px solid var(--red-bd);padding:3px 9px;border-radius:20px;}
+.t-av{width:30px;height:30px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;margin-left:12px;flex-shrink:0;}
+
+/* ── PAGE ── */
+.page{max-width:1040px;margin:0 auto;padding:26px 20px 80px;}
+
+/* ── PHASES ── */
+#ph-in{animation:fadeUp .3s ease;}
+#ph-out{display:none;animation:fadeUp .3s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+/* ── TYPOGRAPHY ── */
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink4);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.eyebrow span{color:var(--bd2);}
+.pg-h{font-size:21px;font-weight:700;letter-spacing:-.4px;margin-bottom:4px;}
+.pg-sub{font-size:13.5px;color:var(--ink3);line-height:1.7;margin-bottom:22px;}
+.sec-label{font-size:10.5px;font-weight:600;letter-spacing:1.3px;text-transform:uppercase;color:var(--ink4);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.sec-label::after{content:'';flex:1;height:1px;background:var(--bd);}
+
+/* ── CARD ── */
+.card{background:var(--surface);border:1px solid var(--bd);border-radius:var(--r12);box-shadow:var(--sh1);margin-bottom:14px;}
+.card-hd{padding:15px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px;}
+.chd-icon{width:32px;height:32px;border-radius:var(--r8);background:var(--red-bg);color:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.chd-title{font-size:14px;font-weight:600;}
+.chd-sub{font-size:12px;color:var(--ink3);margin-top:1px;}
+.card-bd{padding:20px;}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:2px;background:var(--s3);border:1px solid var(--bd);border-radius:var(--r8);padding:3px;width:fit-content;margin-bottom:18px;}
+.tab{padding:6px 18px;border-radius:6px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--ink3);transition:all .15s;display:flex;align-items:center;gap:6px;}
+.tab.on{background:var(--surface);color:var(--ink2);box-shadow:var(--sh0);border:1px solid var(--bd);}
+.tab svg{opacity:.7;}
+.tab.on svg{opacity:1;}
+
+/* ── DROP ZONE ── */
+.dzone{border:2px dashed var(--bd2);border-radius:var(--r12);padding:42px 20px;text-align:center;cursor:pointer;background:var(--s2);transition:all .18s;}
+.dzone:hover,.dzone.drag{border-color:var(--red);background:var(--red-bg);}
+.dz-ico{width:48px;height:48px;background:var(--red-bg);border-radius:13px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;color:var(--red);}
+.dz-h{font-size:15px;font-weight:600;margin-bottom:5px;color:var(--ink2);}
+.dz-p{font-size:13px;color:var(--ink3);}
+.dz-chips{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:13px;}
+.dz-chip{font-family:'IBM Plex Mono',monospace;font-size:11px;background:var(--surface);border:1px solid var(--bd);color:var(--ink3);padding:3px 9px;border-radius:var(--r4);}
+.dz-note{font-size:11.5px;color:var(--ink4);margin-top:10px;}
+#finp{display:none;}
+
+/* ── FILE LIST ── */
+.flist{display:flex;flex-direction:column;gap:7px;margin-top:13px;}
+.frow{display:flex;align-items:center;gap:10px;padding:10px 13px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r8);}
+.frow-ico{color:var(--red);flex-shrink:0;}
+.frow-name{flex:1;font-size:13px;font-weight:500;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.frow-size{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink4);flex-shrink:0;}
+.frow-st{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--red);flex-shrink:0;min-width:52px;text-align:right;}
+.frow-del{background:none;border:none;cursor:pointer;color:var(--ink4);display:flex;align-items:center;padding:3px;border-radius:4px;transition:color .15s;flex-shrink:0;}
+.frow-del:hover{color:var(--rose);}
+
+/* ── PASTE ── */
+textarea{width:100%;min-height:280px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r8);color:var(--ink);font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.75;padding:14px;resize:vertical;outline:none;transition:border-color .18s;}
+textarea:focus{border-color:var(--red);}
+textarea::placeholder{color:var(--ink4);}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 20px;border-radius:var(--r8);font-family:'IBM Plex Sans',sans-serif;font-size:13.5px;font-weight:500;cursor:pointer;border:1px solid transparent;transition:all .15s;white-space:nowrap;letter-spacing:.1px;}
+.btn:disabled{opacity:.4;cursor:not-allowed;pointer-events:none;}
+.btn-primary{background:var(--red);color:#fff;border-color:var(--red);}
+.btn-primary:hover{background:var(--red-dk);box-shadow:0 3px 12px rgba(232,0,45,.25);}
+.btn-ghost{background:transparent;color:var(--red);border-color:var(--red-bd);}
+.btn-ghost:hover{background:var(--red-bg);}
+.btn-outline{background:var(--surface);color:var(--ink2);border-color:var(--bd);}
+.btn-outline:hover{border-color:var(--bd2);background:var(--s2);}
+.btn-sm{padding:6px 14px;font-size:12.5px;}
+.act-row{display:flex;gap:10px;margin-top:18px;align-items:center;flex-wrap:wrap;}
+.act-hint{font-size:12px;color:var(--ink4);}
+
+/* ── ERROR / INFO STRIP ── */
+.strip{border-radius:var(--r8);padding:12px 15px;font-size:13px;line-height:1.65;margin-top:12px;}
+.strip.err{background:var(--r-bg);border:1px solid var(--r-bd);color:var(--rose);}
+.strip.info{background:var(--b-bg);border:1px solid var(--b-bd);color:var(--blue);}
+.strip-detail{margin-top:9px;padding:10px 12px;background:rgba(0,0,0,.04);border-radius:6px;font-size:12px;line-height:2;}
+.strip-detail a{color:var(--rose);}
+
+/* ── CHECKLIST ── */
+.doc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:5px;padding:14px;}
+.doc-item{display:flex;align-items:center;gap:9px;padding:8px 11px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r8);font-size:12.5px;color:var(--ink3);}
+.doc-num{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink4);min-width:18px;}
+
+/* ── LOADING ── */
+#ld{display:none;position:fixed;inset:0;background:rgba(239,241,245,.92);backdrop-filter:blur(6px);z-index:500;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
+#ld.on{display:flex;}
+.spin{width:40px;height:40px;border:3px solid var(--bd);border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.ld-h{font-size:15px;font-weight:600;color:var(--ink2);}
+.ld-s{font-size:12px;color:var(--ink4);font-family:'IBM Plex Mono',monospace;max-width:340px;text-align:center;}
+
+/* ── RESULT: SUMMARY BAR ── */
+.sumbar{background:var(--surface);border:1px solid var(--bd);border-radius:var(--r16);box-shadow:var(--sh2);padding:22px 24px;margin-bottom:14px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
+.sum-l{flex:1;min-width:180px;}
+.sum-ey{font-size:10.5px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--ink4);margin-bottom:3px;}
+.sum-name{font-size:23px;font-weight:700;letter-spacing:-.5px;line-height:1.2;}
+.sum-meta{font-size:12.5px;color:var(--ink3);margin-top:4px;}
+.prog-w{height:4px;background:var(--bd);border-radius:2px;margin-top:10px;max-width:240px;overflow:hidden;}
+.prog-f{height:100%;border-radius:2px;transition:width .6s ease;}
+.rdns{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;}
+.rdns-ready{background:var(--g-bg);color:var(--green);border:1px solid var(--g-bd);}
+.rdns-partial{background:var(--a-bg);color:var(--amber);border:1px solid var(--a-bd);}
+.rdns-notready{background:var(--r-bg);color:var(--rose);border:1px solid var(--r-bd);}
+.stats{display:flex;gap:9px;}
+.stat{text-align:center;padding:10px 17px;border-radius:var(--r8);min-width:68px;border:1px solid transparent;}
+.stat.ok{background:var(--g-bg);border-color:var(--g-bd);}
+.stat.wa{background:var(--a-bg);border-color:var(--a-bd);}
+.stat.mi{background:var(--r-bg);border-color:var(--r-bd);}
+.stat-n{font-size:24px;font-weight:700;line-height:1;margin-bottom:2px;}
+.stat.ok .stat-n{color:var(--green);}
+.stat.wa .stat-n{color:var(--amber);}
+.stat.mi .stat-n{color:var(--rose);}
+.stat-l{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--ink4);}
+
+/* ── AI STRIP ── */
+.ai-strip{background:linear-gradient(135deg,#F0F4FF 0%,#F8F6FF 100%);border:1px solid #D0DAFF;border-radius:var(--r12);padding:15px 20px;display:flex;gap:13px;align-items:flex-start;margin-bottom:14px;box-shadow:var(--sh1);}
+.ai-lbl{background:#EEF2FF;border:1px solid #C7D2FE;color:#4338CA;border-radius:6px;padding:4px 9px;font-size:10px;font-weight:700;letter-spacing:.6px;white-space:nowrap;flex-shrink:0;margin-top:1px;}
+.ai-txt{font-size:13.5px;color:var(--ink2);line-height:1.8;}
+
+/* ── FLAGS ── */
+.flags{border-radius:var(--r12);padding:15px 20px;margin-bottom:14px;}
+.flags.warn{background:var(--a-bg);border:1px solid var(--a-bd);}
+.flags.clear{background:var(--g-bg);border:1px solid var(--g-bd);}
+.flags-hd{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.flags-hd.warn{color:var(--amber);}
+.flags-hd.clear{color:var(--green);}
+.flag-row{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid rgba(168,81,10,.09);font-size:13px;color:var(--ink2);}
+.flag-row:last-child{border-bottom:none;}
+.flag-arr{color:var(--amber);flex-shrink:0;margin-top:3px;}
+
+/* ── RESULTS TABLE ── */
+.rt{background:var(--surface);border:1px solid var(--bd);border-radius:var(--r12);box-shadow:var(--sh1);overflow:hidden;margin-bottom:14px;}
+.rt-hd{display:grid;grid-template-columns:36px 1fr 100px 1fr;padding:10px 18px;background:var(--s2);border-bottom:1px solid var(--bd);font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:1.1px;color:var(--ink4);}
+.rt-row{display:grid;grid-template-columns:36px 1fr 100px 1fr;padding:13px 18px;border-bottom:1px solid var(--bd);align-items:start;transition:background .12s;border-left:3px solid transparent;}
+.rt-row:last-child{border-bottom:none;}
+.rt-row:hover{background:var(--s2);}
+.rt-row.ok{border-left-color:var(--green);}
+.rt-row.wa{border-left-color:var(--amber);}
+.rt-row.mi{border-left-color:var(--rose);}
+.rt-num{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink4);padding-top:3px;}
+.rt-name{font-size:13px;font-weight:500;color:var(--ink);padding-top:2px;}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:12px;}
+.chip-ok{background:var(--g-bg);color:var(--green);}
+.chip-wa{background:var(--a-bg);color:var(--amber);}
+.chip-mi{background:var(--r-bg);color:var(--rose);}
+.rt-detail{font-size:12.5px;color:var(--ink3);line-height:1.55;padding-top:2px;}
+
+/* ── RESULT ACTIONS ── */
+.res-acts{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;}
+.res-acts .sp{flex:1;}
+
+/* ── PRINT ── */
+@media print{
+  .topbar,.act-row,.res-acts,.tabs,.btn,#ld{display:none!important;}
+  body{background:#fff;}
+  .card,.rt,.sumbar,.ai-strip,.flags{box-shadow:none!important;}
+  .page{padding:0;}
+}
+
+/* ── MOBILE ── */
+@media(max-width:600px){
+  .rt-hd,.rt-row{grid-template-columns:28px 1fr 90px;}
+  .rt-hd>*:last-child,.rt-row>*:last-child{display:none;}
+  .topbar{padding:0 14px;}
+  .page{padding:14px 12px 60px;}
+  .sumbar{flex-direction:column;align-items:flex-start;}
+  .stats{flex-wrap:wrap;}
+  .t-badge{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="t-logo">NETCRACKER</div>
+  <div class="t-sep"></div>
+  <span class="t-title">HR Operations · Document Verification</span>
+  <div class="t-space"></div>
+  <span class="t-badge">AI-POWERED · BETA</span>
+  <div class="t-av">HR</div>
+</header>
+
+<!-- LOADING OVERLAY -->
+<div id="ld">
+  <div class="spin"></div>
+  <div class="ld-h">Analysing Documents</div>
+  <div class="ld-s" id="ld-s">Preparing…</div>
+</div>
+
+<main class="page">
+
+  <!-- ══════════════ INPUT PHASE ══════════════ -->
+  <div id="ph-in">
+    <div class="eyebrow">HR Operations <span>/</span> Onboarding <span>/</span> Document Check</div>
+    <div class="pg-h">Joiner Document Verification</div>
+    <p class="pg-sub">Upload PDF files or paste document text below. Claude AI cross-checks all 16 required onboarding documents and returns a full readiness report.</p>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="chd-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </div>
+        <div>
+          <div class="chd-title">Submit Joiner Documents</div>
+          <div class="chd-sub">Upload PDF files directly, or paste extracted document text</div>
+        </div>
+      </div>
+      <div class="card-bd">
+
+        <div class="tabs">
+          <button class="tab on" id="tab-up" onclick="setTab('up')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Upload Files
+          </button>
+          <button class="tab" id="tab-pa" onclick="setTab('pa')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+            Paste Text
+          </button>
+        </div>
+
+        <!-- UPLOAD PANEL -->
+        <div id="pnl-up">
+          <div class="dzone" id="dz" onclick="document.getElementById('finp').click()">
+            <div class="dz-ico">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <div class="dz-h">Drag &amp; drop files here</div>
+            <div class="dz-p">or click anywhere in this box to browse your computer</div>
+            <div class="dz-chips">
+              <span class="dz-chip">PDF ✓</span>
+              <span class="dz-chip">TXT ✓</span>
+              <span class="dz-chip">Multiple files</span>
+            </div>
+            <div class="dz-note">For Word (.docx) files — open in Word → Select All → Copy → use Paste Text tab</div>
+          </div>
+          <input type="file" id="finp" accept=".pdf,.txt,.text" multiple/>
+          <div class="flist" id="flist"></div>
+        </div>
+
+        <!-- PASTE PANEL -->
+        <div id="pnl-pa" style="display:none;">
+          <textarea id="parea" placeholder="Paste all joiner document content here…&#10;&#10;Tip: Use labels like  --- RESUME ---  or  --- PAN CARD ---  to help Claude identify each section. You can paste everything together in one block."></textarea>
+        </div>
+
+        <!-- ERROR -->
+        <div class="strip err" id="err" style="display:none;"></div>
+
+        <div class="act-row">
+          <button class="btn btn-primary" id="vbtn" onclick="verify()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Verify Documents
+          </button>
+          <button class="btn btn-ghost" onclick="loadDemo()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Load Demo Joiner
+          </button>
+          <span class="act-hint">Demo loads a profile with intentional gaps — shows all 3 status types</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-label">16-Document Onboarding Checklist</div>
+    <div class="card" style="margin-bottom:0;">
+      <div class="doc-grid" id="dgrid"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════ RESULT PHASE ══════════════ -->
+  <div id="ph-out">
+
+    <div class="sumbar">
+      <div class="sum-l">
+        <div class="sum-ey">Verification Report</div>
+        <div class="sum-name" id="r-name">—</div>
+        <div class="sum-meta" id="r-meta"></div>
+        <div class="prog-w"><div class="prog-f" id="r-prog" style="width:0%"></div></div>
+      </div>
+      <div id="r-rdns" class="rdns rdns-partial">—</div>
+      <div class="stats">
+        <div class="stat ok"><div class="stat-n" id="r-ok">0</div><div class="stat-l">Complete</div></div>
+        <div class="stat wa"><div class="stat-n" id="r-wa">0</div><div class="stat-l">Warning</div></div>
+        <div class="stat mi"><div class="stat-n" id="r-mi">0</div><div class="stat-l">Missing</div></div>
+      </div>
+    </div>
+
+    <div class="res-acts">
+      <button class="btn btn-outline btn-sm" onclick="window.print()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Print / Save PDF
+      </button>
+      <button class="btn btn-outline btn-sm" id="cbtn" onclick="copySum()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy Summary
+      </button>
+      <div class="sp"></div>
+      <button class="btn btn-primary btn-sm" onclick="reset()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.34"/></svg>
+        Check Another Joiner
+      </button>
+    </div>
+
+    <div class="ai-strip">
+      <span class="ai-lbl">AI SUMMARY</span>
+      <div class="ai-txt" id="r-sum"></div>
+    </div>
+
+    <div id="r-flags"></div>
+
+    <div class="sec-label" style="margin-bottom:10px;">Document-by-Document Results</div>
+    <div class="rt">
+      <div class="rt-hd"><span>#</span><span>Document</span><span>Status</span><span>Extracted Value / Note</span></div>
+      <div id="r-rows"></div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+'use strict';
+
+// ── DOCUMENT LIST ──────────────────────────────────────────────
+const DOCS=[
+  'Date of Joining (DOJ)','Joining Status','Work Location','Profile / Resume',
+  'Aadhaar Card','PAN Card','Offer-cum-Appointment Letter',
+  'Code of Ethics (signed agreement)','Employee Privacy Document (signed agreement)',
+  'Trade Secrets Agreement (signed agreement)','TRA — Third Party Reference Agreement',
+  'Onboarding Form','Academic Documents','Bank Details','PF Passbook & UAN',
+  'Previous Employment Docs'
+];
+
+(()=>{
+  const g=document.getElementById('dgrid');
+  DOCS.forEach((d,i)=>{
+    const el=document.createElement('div');
+    el.className='doc-item';
+    el.innerHTML=`<span class="doc-num">${String(i+1).padStart(2,'0')}</span>${esc(d)}`;
+    g.appendChild(el);
+  });
+})();
+
+// ── TAB STATE ──────────────────────────────────────────────────
+let TAB='up';
+
+function setTab(t){
+  TAB=t;
+  document.getElementById('tab-up').classList.toggle('on',t==='up');
+  document.getElementById('tab-pa').classList.toggle('on',t==='pa');
+  document.getElementById('pnl-up').style.display=t==='up'?'block':'none';
+  document.getElementById('pnl-pa').style.display=t==='pa'?'block':'none';
+  hideErr();
+}
+
+// ── FILE HANDLING ──────────────────────────────────────────────
+let FILES=[];
+
+const dz=document.getElementById('dz');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag');});
+dz.addEventListener('dragleave',e=>{if(!dz.contains(e.relatedTarget))dz.classList.remove('drag');});
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag');addFiles([...e.dataTransfer.files]);});
+document.getElementById('finp').addEventListener('change',e=>{addFiles([...e.target.files]);e.target.value='';});
+
+function addFiles(list){
+  let rejected=[];
+  list.forEach(f=>{
+    const ext=f.name.split('.').pop().toLowerCase();
+    if(!['pdf','txt','text'].includes(ext)){rejected.push(f.name);return;}
+    if(!FILES.find(x=>x.name===f.name)) FILES.push(f);
+  });
+  renderFiles();
+  if(rejected.length) showErr(`Unsupported file type: ${rejected.join(', ')}. Please upload PDF or TXT files only. For Word files, use Paste Text tab.`);
+  else hideErr();
+}
+
+function removeFile(name){
+  FILES=FILES.filter(f=>f.name!==name);
+  renderFiles();
+}
+
+function renderFiles(){
+  const list=document.getElementById('flist');
+  list.innerHTML='';
+  FILES.forEach(f=>{
+    const sz=f.size<1048576?(f.size/1024).toFixed(1)+' KB':(f.size/1048576).toFixed(2)+' MB';
+    const safeId='fst_'+btoa(f.name).replace(/[^a-zA-Z0-9]/g,'').slice(0,20);
+    const safeName=f.name.replace(/'/g,"\\'");
+    const div=document.createElement('div');
+    div.className='frow';
+    div.innerHTML=`
+      <span class="frow-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+      <span class="frow-name" title="${esc(f.name)}">${esc(f.name)}</span>
+      <span class="frow-size">${sz}</span>
+      <span class="frow-st" id="${safeId}"></span>
+      <button class="frow-del" onclick="removeFile('${safeName}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
+    list.appendChild(div);
+  });
+}
+
+function fileStatusId(f){
+  return 'fst_'+btoa(f.name).replace(/[^a-zA-Z0-9]/g,'').slice(0,20);
+}
+
+// ── FILE READERS ───────────────────────────────────────────────
+function fileToBase64(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=e=>res(e.target.result.split(',')[1]);
+    r.onerror=()=>rej(new Error('Cannot read '+file.name));
+    r.readAsDataURL(file);
+  });
+}
+function fileToText(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=e=>res(e.target.result);
+    r.onerror=()=>rej(new Error('Cannot read '+file.name));
+    r.readAsText(file);
+  });
+}
+
+// ── DEMO DATA ──────────────────────────────────────────────────
+const DEMO=`--- RESUME ---
+Name: Arjun Mehta
+Email: arjun.mehta@gmail.com
+Phone: 9845012345
+Location: Hyderabad, Telangana
+Total Experience: 5 years 2 months
+Current Role: Software Engineer at Infosys Ltd
+
+--- OFFER-CUM-APPOINTMENT LETTER ---
+Date: 10th May 2026
+Employee Name: Arjun Mehta
+Designation: Senior Software Engineer
+Department: Engineering — Platform Services
+Location: Hyderabad
+CTC: Rs. 14,50,000 per annum
+Date of Joining: 16th June 2026
+Signed by Employee: Yes
+Signed by HR: Yes
+
+--- AADHAAR CARD ---
+Name: Arjun Kumar Mehta
+Date of Birth: 22nd July 1994
+Aadhaar Number: 5678 1234 9012
+Address: Flat 4B, Jubilee Hills, Hyderabad - 500033
+
+--- PAN CARD ---
+Name: Arjun Mehta
+PAN Number: CLRPM7890J
+Date of Birth: 22/07/1994
+
+--- CODE OF ETHICS ---
+Employee Name: Arjun Mehta
+Signed: Yes
+Date: 11th May 2026
+
+--- EMPLOYEE PRIVACY DOCUMENT ---
+Employee Name: Arjun Mehta
+Signed: Yes
+Date: 11th May 2026
+
+--- TRADE SECRETS AGREEMENT ---
+Employee Name: Arjun Mehta
+Signed: NOT SIGNED
+Date: —
+
+--- TRA ---
+Employee Name: Arjun Mehta
+Completed: Yes
+Reference 1: Kavitha Rao | Tech Lead | Infosys | 9900123456
+Reference 2: Suresh Iyer | Manager | TCS | 9871234567
+
+--- ONBOARDING FORM ---
+Employee Name: Arjun Mehta
+Emergency Contact: Priya Mehta (Wife) | 9845098000
+Blood Group: O+
+Completed: Yes
+
+--- ACADEMIC DOCUMENTS ---
+Degree: B.Tech (Computer Science)
+Institution: JNTU Hyderabad
+Year of Passing: 2016
+Percentage: 78%
+
+--- BANK DETAILS ---
+Bank Name: ICICI Bank
+Account Holder: Arjun Mehta
+Account Number: 123456789012
+IFSC Code: ICIC0001122
+Branch: Jubilee Hills, Hyderabad
+
+--- PF PASSBOOK & UAN ---
+UAN Number: 100345678912
+PF Account: MH/HYD/0089123
+
+--- PREVIOUS EMPLOYMENT DOCS ---
+Last Employer: Infosys Ltd
+Designation: Software Engineer
+Last Working Day: 31st May 2026
+Relieving Letter: Provided
+Service Letter: NOT PROVIDED
+
+--- JOINING STATUS ---
+Status: Confirmed
+Date of Joining: 16th June 2026
+Location: Hyderabad`;
+
+function loadDemo(){
+  setTab('pa');
+  document.getElementById('parea').value=DEMO;
+  hideErr();
+}
+
+// ── AI PROMPT ──────────────────────────────────────────────────
+const SYS=`You are an AI document verification assistant for Netcracker HR Operations.
+
+Analyse the provided joiner documents and return ONLY a valid JSON object. No markdown fences, no commentary, no text before or after the JSON.
+
+Return this exact structure:
+{
+  "joiner_name": "Full name from documents",
+  "designation": "Job title if found, else null",
+  "joining_date": "DOJ if found, else null",
+  "location": "Work location if found, else null",
+  "readiness": "Ready" | "Partially Ready" | "Not Ready",
+  "summary": "2-3 sentences for an HR ops professional. State overall status, name any critical gaps, and mention key flags.",
+  "flags": ["Each flag as a specific string. E.g.: Aadhaar shows Arjun Kumar Mehta but Offer Letter shows Arjun Mehta. Empty array if none."],
+  "documents": [
+    {
+      "id": 1,
+      "name": "Exact name from list below",
+      "status": "found" | "warning" | "missing",
+      "detail": "Key extracted value for found; clear reason for warning; Not submitted for missing"
+    }
+  ]
+}
+
+The 16 documents — use EXACT names:
+1. Date of Joining (DOJ)
+2. Joining Status
+3. Work Location
+4. Profile / Resume
+5. Aadhaar Card
+6. PAN Card
+7. Offer-cum-Appointment Letter
+8. Code of Ethics (signed agreement)
+9. Employee Privacy Document (signed agreement)
+10. Trade Secrets Agreement (signed agreement)
+11. TRA — Third Party Reference Agreement
+12. Onboarding Form
+13. Academic Documents
+14. Bank Details
+15. PF Passbook & UAN
+16. Previous Employment Docs
+
+Rules:
+- found: complete and valid. Detail = key value (e.g. PAN: CLRPM7890J, DOB: 22 Jul 1994)
+- warning: present but has an issue — unsigned, incomplete, or valid exception (e.g. first-job, no prior UAN). Detail = specific issue.
+- missing: not submitted. Detail = Not submitted
+
+Readiness:
+- Ready: 0 missing; warnings only for valid exceptions
+- Not Ready: any of Aadhaar / PAN / Offer Letter / Bank Details missing, OR 3 or more docs missing
+- Partially Ready: everything else
+
+Always output exactly 16 document entries.`;
+
+// ── MAIN VERIFY ────────────────────────────────────────────────
+async function verify(){
+  hideErr();
+  const btn=document.getElementById('vbtn');
+  btn.disabled=true;
+
+  try{
+    let content=[];
+
+    if(TAB==='pa'){
+      const txt=document.getElementById('parea').value.trim();
+      if(!txt){showErr('Please paste the joiner document content before running verification.');btn.disabled=false;return;}
+      setLoading(true,'Reading pasted text…');
+      content=[{type:'text',text:'Please verify these joiner onboarding documents:\n\n'+txt}];
+
+    } else {
+      if(!FILES.length){showErr('Please upload at least one document file (PDF or TXT) before running verification.');btn.disabled=false;return;}
+      setLoading(true,'Preparing files…');
+      content.push({type:'text',text:'Please verify these joiner onboarding documents:'});
+
+      for(const f of FILES){
+        const sid=fileStatusId(f);
+        const statusEl=document.getElementById(sid);
+        if(statusEl) statusEl.textContent='reading…';
+        setLoading(true,'Reading: '+f.name);
+
+        const ext=f.name.split('.').pop().toLowerCase();
+        if(ext==='pdf'){
+          const b64=await fileToBase64(f);
+          content.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:b64},title:f.name});
+        } else {
+          const txt=await fileToText(f);
+          content.push({type:'text',text:'\n=== FILE: '+f.name+' ===\n'+txt});
+        }
+        if(statusEl) statusEl.textContent='✓ ready';
+      }
+    }
+
+    setLoading(true,'Claude AI is verifying all 16 documents…');
+
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:2000,
+        system:SYS,
+        messages:[{role:'user',content}]
+      })
+    });
+
+    if(!resp.ok){
+      let body='';
+      try{body=await resp.text();}catch(e){}
+      if(resp.status===401) throw new Error('AUTH_401');
+      if(resp.status===429) throw new Error('RATE_429');
+      throw new Error('HTTP_'+resp.status+(body?' — '+body.slice(0,200):''));
+    }
+
+    const data=await resp.json();
+    const raw=data.content.map(b=>b.text||'').join('');
+    // Strip any accidental markdown fences
+    const clean=raw.replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,'').trim();
+    const result=JSON.parse(clean);
+    renderResult(result);
+
+  } catch(e){
+    setLoading(false);
+    btn.disabled=false;
+    const m=e.message||'';
+
+    if(m.includes('Failed to fetch')||m.includes('NetworkError')||m.includes('Load failed')||m.includes('fetch')){
+      showErr(
+        '⚠️ Connection blocked — this usually means a VPN or corporate firewall is active.'+
+        '<div class="strip-detail">'+
+        '• Disconnect your office VPN and try again<br>'+
+        '• Or host this file on <a href="https://app.netlify.com/drop" target="_blank">Netlify (free, 2 min)</a> for a permanent fix<br>'+
+        '• On office WiFi? Switch to mobile hotspot for the demo'+
+        '</div>'
+      );
+    } else if(m==='AUTH_401'){
+      showErr('Authentication error (401). The API key is missing or expired. Please contact your administrator.');
+    } else if(m==='RATE_429'){
+      showErr('Rate limit reached (429). Please wait 30 seconds and try again.');
+    } else if(m.includes('JSON')||m.includes('SyntaxError')){
+      showErr('The AI returned an unexpected response. Please try again — this is usually a one-time glitch.');
+    } else {
+      showErr('Error: '+m);
+    }
+  }
+}
+
+// ── RENDER RESULT ──────────────────────────────────────────────
+function renderResult(d){
+  setLoading(false);
+
+  document.getElementById('r-name').textContent=d.joiner_name||'Unknown Joiner';
+  const meta=[];
+  if(d.designation) meta.push(d.designation);
+  if(d.joining_date) meta.push('DOJ: '+d.joining_date);
+  if(d.location) meta.push(d.location);
+  document.getElementById('r-meta').textContent=meta.join(' · ')||'';
+
+  const rdns=document.getElementById('r-rdns');
+  rdns.textContent=d.readiness||'—';
+  rdns.className='rdns';
+  rdns.classList.add(d.readiness==='Ready'?'rdns-ready':d.readiness==='Not Ready'?'rdns-notready':'rdns-partial');
+
+  const docs=Array.isArray(d.documents)?d.documents:[];
+  const ok=docs.filter(x=>x.status==='found').length;
+  const wa=docs.filter(x=>x.status==='warning').length;
+  const mi=docs.filter(x=>x.status==='missing').length;
+  document.getElementById('r-ok').textContent=ok;
+  document.getElementById('r-wa').textContent=wa;
+  document.getElementById('r-mi').textContent=mi;
+
+  const pct=Math.round(((ok+wa*0.5)/16)*100);
+  const pf=document.getElementById('r-prog');
+  pf.style.width=pct+'%';
+  pf.style.background=d.readiness==='Ready'?'var(--green)':d.readiness==='Not Ready'?'var(--rose)':'var(--amber)';
+
+  document.getElementById('r-sum').textContent=d.summary||'';
+
+  const flagsEl=document.getElementById('r-flags');
+  const flags=Array.isArray(d.flags)?d.flags.filter(Boolean):[];
+  if(flags.length){
+    flagsEl.innerHTML=`<div class="flags warn">
+      <div class="flags-hd warn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Flags &amp; Mismatches (${flags.length})
+      </div>
+      ${flags.map(f=>`<div class="flag-row"><span class="flag-arr">▸</span><span>${esc(f)}</span></div>`).join('')}
+    </div>`;
+  } else {
+    flagsEl.innerHTML=`<div class="flags clear">
+      <div class="flags-hd clear">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        No Flags or Mismatches Detected
+      </div>
+      <p style="font-size:13px;color:var(--ink3);">All submitted documents are consistent — no name variations or data anomalies found.</p>
+    </div>`;
+  }
+
+  const rows=document.getElementById('r-rows');
+  rows.innerHTML='';
+  docs.forEach((doc,i)=>{
+    const cls=doc.status==='found'?'ok':doc.status==='warning'?'wa':'mi';
+    const cCls=doc.status==='found'?'chip-ok':doc.status==='warning'?'chip-wa':'chip-mi';
+    const lbl=doc.status==='found'?'✓ Found':doc.status==='warning'?'⚠ Warning':'✕ Missing';
+    const r=document.createElement('div');
+    r.className='rt-row '+cls;
+    r.innerHTML=`<span class="rt-num">${String(i+1).padStart(2,'0')}</span><span class="rt-name">${esc(doc.name||'')}</span><span><span class="chip ${cCls}">${lbl}</span></span><span class="rt-detail">${esc(doc.detail||'—')}</span>`;
+    rows.appendChild(r);
+  });
+
+  document.getElementById('ph-in').style.display='none';
+  document.getElementById('ph-out').style.display='block';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── UTILS ──────────────────────────────────────────────────────
+function setLoading(on,sub){
+  document.getElementById('ld').classList.toggle('on',on);
+  if(sub) document.getElementById('ld-s').textContent=sub;
+}
+function showErr(html){
+  const el=document.getElementById('err');
+  el.innerHTML=html;
+  el.style.display='block';
+}
+function hideErr(){
+  const el=document.getElementById('err');
+  el.style.display='none';
+}
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function reset(){
+  FILES=[];
+  renderFiles();
+  document.getElementById('parea').value='';
+  hideErr();
+  setTab('up');
+  document.getElementById('vbtn').disabled=false;
+  document.getElementById('ph-in').style.display='block';
+  document.getElementById('ph-out').style.display='none';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function copySum(){
+  const name=document.getElementById('r-name').textContent;
+  const meta=document.getElementById('r-meta').textContent;
+  const rdns=document.getElementById('r-rdns').textContent;
+  const ok=document.getElementById('r-ok').textContent;
+  const wa=document.getElementById('r-wa').textContent;
+  const mi=document.getElementById('r-mi').textContent;
+  const sum=document.getElementById('r-sum').textContent;
+  const txt=[
+    'Netcracker HR — Document Verification Report',
+    '─'.repeat(50),
+    'Joiner : '+name,
+    meta,
+    'Readiness : '+rdns,
+    'Complete: '+ok+'  |  Warning: '+wa+'  |  Missing: '+mi,
+    '',
+    'Summary:',
+    sum
+  ].filter(l=>l!==undefined).join('\n');
+  navigator.clipboard.writeText(txt).then(()=>{
+    const b=document.getElementById('cbtn');
+    const orig=b.innerHTML;
+    b.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
+    setTimeout(()=>b.innerHTML=orig,2000);
+  }).catch(()=>alert('Please manually copy the summary.'));
+}
+</script>
+</body>
+</html>
